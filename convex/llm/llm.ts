@@ -18,13 +18,17 @@ export class LLM_Wrapper implements LLM_API {
     if (llm_model === 'aws') {
 
 
-      this.LLM_Body = new awsBedrock();
+      this.LLM_Body = new awsBedrock(llm_model);
     } else if (llm_model === 'ollama') {
 
-      this.LLM_Body = new OllamaModel();
+      var a = 'a'
+
+      var new_llm_model = new OllamaModel(llm_model);
+
+      this.LLM_Body = new_llm_model;
     }
     else {
-      this.LLM_Body = new awsBedrock();
+      this.LLM_Body = new awsBedrock(llm_model);
     }
   }
 
@@ -181,11 +185,11 @@ export async function chatCompletion(
 
 
 export async function fetchEmbeddingBatch(texts: string[]) {
-  llm_api.fetchEmbeddingBatch(texts);
+  return llm_api.fetchEmbeddingBatch(texts);
 }
 
 export async function fetchEmbedding(text: string) {
-  llm_api.fetchEmbedding(text);
+  return llm_api.fetchEmbedding(text);
 }
 
 

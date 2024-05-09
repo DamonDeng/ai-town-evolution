@@ -410,7 +410,7 @@ export interface LLM_API {
 
   fetchEmbedding(text: string): Promise<{ embedding: number[];[key: string]: any }>;
 
-  fetchModeration(content: string): Promise<{ results: { flagged: boolean }[] }>;
+
 
 
 }

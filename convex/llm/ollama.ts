@@ -2,11 +2,21 @@
 
 import { LLM_API, ChatCompletionContent, CreateChatCompletionRequest, CreateChatCompletionResponse, CreateEmbeddingResponse } from "./types";
 
-import { retryWithBackoff } from "./llm";
+// import { retryWithBackoff } from "./llm";
 
 
 
 export class OllamaModel implements LLM_API {
+
+  private dummy_string: string = '';
+
+  constructor(llm_model: string) {
+
+    // dumpy function only to match the Interface.
+
+    this.dummy_string = 'testing';
+
+  }
 
   async chatCompletion(
     body: Omit<CreateChatCompletionRequest, 'model'> & {
@@ -226,27 +236,26 @@ async function tryPullOllama(model: string, error: string) {
 
 async function fetchModeration(content: string) {
   assertApiKey();
-  const { result: flagged } = await retryWithBackoff(async () => {
-    const result = await fetch(apiUrl('/v1/moderations'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...AuthHeaders(),
-      },
 
-      body: JSON.stringify({
-        input: content,
-      }),
-    });
-    if (!result.ok) {
-      throw {
-        retry: result.status === 429 || result.status >= 500,
-        error: new Error(`Embedding failed with code ${result.status}: ${await result.text()}`),
-      };
-    }
-    return (await result.json()) as { results: { flagged: boolean }[] };
+  const result = await fetch(apiUrl('/v1/moderations'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...AuthHeaders(),
+    },
+
+    body: JSON.stringify({
+      input: content,
+    }),
   });
-  return flagged;
+  if (!result.ok) {
+    throw {
+      retry: result.status === 429 || result.status >= 500,
+      error: new Error(`Embedding failed with code ${result.status}: ${await result.text()}`),
+    };
+  }
+  return (await result.json()) as { results: { flagged: boolean }[] };
+
 }
 
 export function assertApiKey() {
@@ -278,20 +287,20 @@ const suffixOverlapsPrefix = (s1: string, s2: string) => {
 
 
 export async function ollamaFetchEmbedding(text: string) {
-  const { result } = await retryWithBackoff(async () => {
-    const resp = await fetch(apiUrl('/api/embeddings'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ model: LLM_CONFIG.embeddingModel, prompt: text }),
-    });
-    if (resp.status === 404) {
-      const error = await resp.text();
-      await tryPullOllama(LLM_CONFIG.embeddingModel, error);
-      throw new Error(`Failed to fetch embeddings: ${resp.status}`);
-    }
-    return (await resp.json()).embedding as number[];
+
+  const resp = await fetch(apiUrl('/api/embeddings'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ model: LLM_CONFIG.embeddingModel, prompt: text }),
   });
-  return { embedding: result };
+  if (resp.status === 404) {
+    const error = await resp.text();
+    await tryPullOllama(LLM_CONFIG.embeddingModel, error);
+    throw new Error(`Failed to fetch embeddings: ${resp.status}`);
+  }
+  return { embedding: (await resp.json()).embedding as number[] };
+
+
 }

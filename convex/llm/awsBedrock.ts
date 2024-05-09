@@ -44,6 +44,13 @@ export async function retryWithBackoff<T>(
 
 export class awsBedrock implements LLM_API {
 
+  constructor(llm_model: string) {
+
+    // dumpy function only to match the Interface.
+
+
+  }
+
 
 
   async chatCompletion(

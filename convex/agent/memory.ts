@@ -2,7 +2,9 @@ import { v } from 'convex/values';
 import { ActionCtx, DatabaseReader, internalMutation, internalQuery } from '../_generated/server';
 import { Doc, Id } from '../_generated/dataModel';
 import { internal } from '../_generated/api';
-import { LLMMessage, chatCompletion, fetchEmbedding } from '../llm/llm';
+import { chatCompletion, fetchEmbedding } from '../llm/llm';
+import { LLMMessage } from '../llm/types';
+
 import { asyncMap } from '../util/asyncMap';
 import { GameId, agentId, conversationId, playerId } from '../aiTown/ids';
 import { SerializedPlayer } from '../aiTown/player';
