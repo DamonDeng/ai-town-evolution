@@ -1,273 +1,4 @@
-// That's right! No imports and no dependencies 🤯
 
-export const LLM_CONFIG = {
-  /* Ollama (local) config:
-   */
-  ollama: true,
-  url: 'http://127.0.0.1:11434',
-  chatModel: 'llama3' as const,
-  embeddingModel: 'mxbai-embed-large',
-  embeddingDimension: 1024,
-  // embeddingModel: 'llama3',
-  // embeddingDimension: 4096,
-
-  /* Together.ai config:
-  ollama: false,
-  url: 'https://api.together.xyz',
-  chatModel: 'meta-llama/Llama-3-8b-chat-hf',
-  embeddingModel: 'togethercomputer/m2-bert-80M-8k-retrieval',
-  embeddingDimension: 768,
-   */
-
-  /* OpenAI config:
-  ollama: false,
-  url: 'https://api.openai.com',
-  chatModel: 'gpt-3.5-turbo-16k',
-  embeddingModel: 'text-embedding-ada-002',
-  embeddingDimension: 1536,
-   */
-};
-
-function apiUrl(path: string) {
-  // OPENAI_API_BASE and OLLAMA_HOST are legacy
-  const host =
-    process.env.LLM_API_URL ??
-    process.env.OLLAMA_HOST ??
-    process.env.OPENAI_API_BASE ??
-    LLM_CONFIG.url;
-  if (host.endsWith('/') && path.startsWith('/')) {
-    return host + path.slice(1);
-  } else if (!host.endsWith('/') && !path.startsWith('/')) {
-    return host + '/' + path;
-  } else {
-    return host + path;
-  }
-}
-
-function apiKey() {
-  return process.env.LLM_API_KEY ?? process.env.OPENAI_API_KEY;
-}
-
-const AuthHeaders = (): Record<string, string> =>
-  apiKey()
-    ? {
-        Authorization: 'Bearer ' + apiKey(),
-      }
-    : {};
-
-// Overload for non-streaming
-export async function chatCompletion(
-  body: Omit<CreateChatCompletionRequest, 'model'> & {
-    model?: CreateChatCompletionRequest['model'];
-  } & {
-    stream?: false | null | undefined;
-  },
-): Promise<{ content: string; retries: number; ms: number }>;
-// Overload for streaming
-export async function chatCompletion(
-  body: Omit<CreateChatCompletionRequest, 'model'> & {
-    model?: CreateChatCompletionRequest['model'];
-  } & {
-    stream?: true;
-  },
-): Promise<{ content: ChatCompletionContent; retries: number; ms: number }>;
-export async function chatCompletion(
-  body: Omit<CreateChatCompletionRequest, 'model'> & {
-    model?: CreateChatCompletionRequest['model'];
-  },
-) {
-  assertApiKey();
-  // OLLAMA_MODEL is legacy
-  body.model =
-    body.model ?? process.env.LLM_MODEL ?? process.env.OLLAMA_MODEL ?? LLM_CONFIG.chatModel;
-  const stopWords = body.stop ? (typeof body.stop === 'string' ? [body.stop] : body.stop) : [];
-  if (LLM_CONFIG.ollama) stopWords.push('<|eot_id|>');
-  console.log(body);
-  const {
-    result: content,
-    retries,
-    ms,
-  } = await retryWithBackoff(async () => {
-    const result = await fetch(apiUrl('/v1/chat/completions'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...AuthHeaders(),
-      },
-
-      body: JSON.stringify(body),
-    });
-    if (!result.ok) {
-      const error = await result.text();
-      console.error({ error });
-      if (result.status === 404 && LLM_CONFIG.ollama) {
-        await tryPullOllama(body.model!, error);
-      }
-      throw {
-        retry: result.status === 429 || result.status >= 500,
-        error: new Error(`Chat completion failed with code ${result.status}: ${error}`),
-      };
-    }
-    if (body.stream) {
-      return new ChatCompletionContent(result.body!, stopWords);
-    } else {
-      const json = (await result.json()) as CreateChatCompletionResponse;
-      const content = json.choices[0].message?.content;
-      if (content === undefined) {
-        throw new Error('Unexpected result from OpenAI: ' + JSON.stringify(json));
-      }
-      console.log(content);
-      return content;
-    }
-  });
-
-  return {
-    content,
-    retries,
-    ms,
-  };
-}
-
-export async function tryPullOllama(model: string, error: string) {
-  if (error.includes('try pulling')) {
-    console.error('Embedding model not found, pulling from Ollama');
-    const pullResp = await fetch(apiUrl('/api/pull'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ name: model }),
-    });
-    console.log('Pull response', await pullResp.text());
-    throw { retry: true, error: `Dynamically pulled model. Original error: ${error}` };
-  }
-}
-
-export async function fetchEmbeddingBatch(texts: string[]) {
-  if (LLM_CONFIG.ollama) {
-    return {
-      ollama: true as const,
-      embeddings: await Promise.all(
-        texts.map(async (t) => (await ollamaFetchEmbedding(t)).embedding),
-      ),
-    };
-  }
-  assertApiKey();
-  const {
-    result: json,
-    retries,
-    ms,
-  } = await retryWithBackoff(async () => {
-    const result = await fetch(apiUrl('/v1/embeddings'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...AuthHeaders(),
-      },
-
-      body: JSON.stringify({
-        model: LLM_CONFIG.embeddingModel,
-        input: texts.map((text) => text.replace(/\n/g, ' ')),
-      }),
-    });
-    if (!result.ok) {
-      throw {
-        retry: result.status === 429 || result.status >= 500,
-        error: new Error(`Embedding failed with code ${result.status}: ${await result.text()}`),
-      };
-    }
-    return (await result.json()) as CreateEmbeddingResponse;
-  });
-  if (json.data.length !== texts.length) {
-    console.error(json);
-    throw new Error('Unexpected number of embeddings');
-  }
-  const allembeddings = json.data;
-  allembeddings.sort((a, b) => a.index - b.index);
-  return {
-    ollama: false as const,
-    embeddings: allembeddings.map(({ embedding }) => embedding),
-    usage: json.usage?.total_tokens,
-    retries,
-    ms,
-  };
-}
-
-export async function fetchEmbedding(text: string) {
-  const { embeddings, ...stats } = await fetchEmbeddingBatch([text]);
-  return { embedding: embeddings[0], ...stats };
-}
-
-export async function fetchModeration(content: string) {
-  assertApiKey();
-  const { result: flagged } = await retryWithBackoff(async () => {
-    const result = await fetch(apiUrl('/v1/moderations'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...AuthHeaders(),
-      },
-
-      body: JSON.stringify({
-        input: content,
-      }),
-    });
-    if (!result.ok) {
-      throw {
-        retry: result.status === 429 || result.status >= 500,
-        error: new Error(`Embedding failed with code ${result.status}: ${await result.text()}`),
-      };
-    }
-    return (await result.json()) as { results: { flagged: boolean }[] };
-  });
-  return flagged;
-}
-
-export function assertApiKey() {
-  if (!LLM_CONFIG.ollama && !apiKey()) {
-    throw new Error(
-      '\n  Missing LLM_API_KEY in environment variables.\n\n' +
-        (LLM_CONFIG.ollama ? 'just' : 'npx') +
-        " convex env set LLM_API_KEY 'your-key'",
-    );
-  }
-}
-
-// Retry after this much time, based on the retry number.
-const RETRY_BACKOFF = [1000, 10_000, 20_000]; // In ms
-const RETRY_JITTER = 100; // In ms
-type RetryError = { retry: boolean; error: any };
-
-export async function retryWithBackoff<T>(
-  fn: () => Promise<T>,
-): Promise<{ retries: number; result: T; ms: number }> {
-  let i = 0;
-  for (; i <= RETRY_BACKOFF.length; i++) {
-    try {
-      const start = Date.now();
-      const result = await fn();
-      const ms = Date.now() - start;
-      return { result, retries: i, ms };
-    } catch (e) {
-      const retryError = e as RetryError;
-      if (i < RETRY_BACKOFF.length) {
-        if (retryError.retry) {
-          console.log(
-            `Attempt ${i + 1} failed, waiting ${RETRY_BACKOFF[i]}ms to retry...`,
-            Date.now(),
-          );
-          await new Promise((resolve) =>
-            setTimeout(resolve, RETRY_BACKOFF[i] + RETRY_JITTER * Math.random()),
-          );
-          continue;
-        }
-      }
-      if (retryError.error) throw retryError.error;
-      else throw e;
-    }
-  }
-  throw new Error('Unreachable');
-}
 
 // Lifted from openai's package
 export interface LLMMessage {
@@ -308,7 +39,7 @@ export interface LLMMessage {
 }
 
 // Non-streaming chat completion response
-interface CreateChatCompletionResponse {
+export interface CreateChatCompletionResponse {
   id: string;
   object: string;
   created: number;
@@ -330,7 +61,7 @@ interface CreateChatCompletionResponse {
   };
 }
 
-interface CreateEmbeddingResponse {
+export interface CreateEmbeddingResponse {
   data: {
     index: number;
     object: string;
@@ -481,15 +212,15 @@ export interface CreateChatCompletionRequest {
    * `auto` is the default if functions are present.
    */
   tool_choice?:
-    | 'none' // none means the model will not call a function and instead generates a message.
-    | 'auto' // auto means the model can pick between generating a message or calling a function.
-    // Specifies a tool the model should use. Use to force the model to call
-    // a specific function.
-    | {
-        // The type of the tool. Currently, only function is supported.
-        type: 'function';
-        function: { name: string };
-      };
+  | 'none' // none means the model will not call a function and instead generates a message.
+  | 'auto' // auto means the model can pick between generating a message or calling a function.
+  // Specifies a tool the model should use. Use to force the model to call
+  // a specific function.
+  | {
+    // The type of the tool. Currently, only function is supported.
+    type: 'function';
+    function: { name: string };
+  };
   // Replaced by "tools"
   // functions?: {
   //   /**
@@ -539,9 +270,6 @@ export interface CreateChatCompletionRequest {
   response_format?: { type: 'text' | 'json_object' };
 }
 
-// Checks whether a suffix of s1 is a prefix of s2. For example,
-// ('Hello', 'Kira:') -> false
-// ('Hello Kira', 'Kira:') -> true
 const suffixOverlapsPrefix = (s1: string, s2: string) => {
   for (let i = 1; i <= Math.min(s1.length, s2.length); i++) {
     const suffix = s1.substring(s1.length - i);
@@ -552,6 +280,7 @@ const suffixOverlapsPrefix = (s1: string, s2: string) => {
   }
   return false;
 };
+
 
 export class ChatCompletionContent {
   private readonly body: ReadableStream<Uint8Array>;
@@ -640,21 +369,48 @@ export class ChatCompletionContent {
   }
 }
 
-export async function ollamaFetchEmbedding(text: string) {
-  const { result } = await retryWithBackoff(async () => {
-    const resp = await fetch(apiUrl('/api/embeddings'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ model: LLM_CONFIG.embeddingModel, prompt: text }),
-    });
-    if (resp.status === 404) {
-      const error = await resp.text();
-      await tryPullOllama(LLM_CONFIG.embeddingModel, error);
-      throw new Error(`Failed to fetch embeddings: ${resp.status}`);
-    }
-    return (await resp.json()).embedding as number[];
-  });
-  return { embedding: result };
+
+// export interface LLM_API {
+//   chatCompletion(
+//     body: Omit<CreateChatCompletionRequest, 'model'> & {
+//       model?: CreateChatCompletionRequest['model'];
+//     } & {
+//       stream?: false | null | undefined;
+//     },
+//   ): Promise<{ content: string; retries: number; ms: number }>;
+
+//   chatCompletion(
+//     body: Omit<CreateChatCompletionRequest, 'model'> & {
+//       model?: CreateChatCompletionRequest['model'];
+//     } & {
+//       stream?: true;
+//     },
+//   ): Promise<{ content: ChatCompletionContent; retries: number; ms: number }>;
+// }
+
+
+export interface LLM_API {
+  chatCompletion(
+    body: Omit<CreateChatCompletionRequest, 'model'> & {
+      model?: CreateChatCompletionRequest['model'];
+    },
+  ): Promise<string>;
+
+  chatCompletionStream(
+    body: Omit<CreateChatCompletionRequest, 'model'> & {
+      model?: CreateChatCompletionRequest['model'];
+    },
+  ): Promise<ChatCompletionContent>;
+
+  fetchEmbeddingBatch(texts: string[]): Promise<{
+    ollama: boolean;
+    embeddings: number[][];
+    usage?: number;
+  }>;
+
+  fetchEmbedding(text: string): Promise<{ embedding: number[];[key: string]: any }>;
+
+  fetchModeration(content: string): Promise<{ results: { flagged: boolean }[] }>;
+
+
 }

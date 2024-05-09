@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
 import { playerId, conversationId } from '../aiTown/ids';
 import { defineTable } from 'convex/server';
-import { LLM_CONFIG } from '../util/llm';
+import { LLM_EmbedingDimension } from '../llm/llm';
 
 export const memoryFields = {
   playerId,
@@ -40,7 +40,7 @@ export const memoryTables = {
   }).vectorIndex('embedding', {
     vectorField: 'embedding',
     filterFields: ['playerId'],
-    dimensions: LLM_CONFIG.embeddingDimension,
+    dimensions: LLM_EmbedingDimension,
   }),
 };
 

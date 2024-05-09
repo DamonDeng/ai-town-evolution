@@ -7,7 +7,7 @@ import { insertInput } from './aiTown/insertInput';
 import { Id } from './_generated/dataModel';
 import { createEngine } from './aiTown/main';
 import { ENGINE_ACTION_DURATION } from './constants';
-import { assertApiKey } from './util/llm';
+import { assertApiKey } from './llm/llm';
 
 const init = mutation({
   args: {

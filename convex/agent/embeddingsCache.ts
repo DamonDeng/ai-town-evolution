@@ -2,7 +2,7 @@ import { v } from 'convex/values';
 import { ActionCtx, internalMutation, internalQuery } from '../_generated/server';
 import { internal } from '../_generated/api';
 import { Id } from '../_generated/dataModel';
-import { fetchEmbeddingBatch } from '../util/llm';
+import { fetchEmbeddingBatch } from '../llm/llm';
 
 const selfInternal = internal.agent.embeddingsCache;
 
