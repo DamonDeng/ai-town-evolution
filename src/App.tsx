@@ -19,10 +19,56 @@ import PoweredByConvex from './components/PoweredByConvex.tsx';
 
 export default function Home() {
   const [helpModalOpen, setHelpModalOpen] = useState(false);
-  return (
-    <main className="relative flex min-h-screen flex-col items-center justify-between font-body game-background">
-      <PoweredByConvex />
 
+  return (
+    <main className="relative min-h-screen font-body game-background flex">
+      {/* Left Column */}
+      <div className="flex flex-col w-64 sm:w-80 md:w-96 lg:w-auto">
+        {/* Header */}
+        <header className="p-3">
+          {/* Header content */}
+
+          <h1 className="mx-auto text-4xl p-3 sm:text-8xl lg:text-9xl font-bold font-display leading-none tracking-wide game-title w-full text-left sm:text-center sm:w-auto">
+          AI Town
+        </h1>
+
+        <div className="max-w-xs md:max-w-xl lg:max-w-none mx-auto my-4 text-center text-base sm:text-xl md:text-2xl text-white leading-tight shadow-solid">
+          A virtual town where AI characters live, chat and socialize.
+        </div>
+        </header>
+
+        {/* Footer */}
+        <footer className="p-3 mt-auto">
+          <div className="flex gap-4 flex-wrap">
+            <FreezeButton />
+            <MusicButton />
+            <Button href="https://github.com/a16z-infra/ai-town" imgUrl={starImg}>
+              Star
+            </Button>
+            <InteractButton />
+            <Button imgUrl={helpImg} onClick={() => setHelpModalOpen(true)}>
+              Help
+            </Button>
+          </div>
+          <div className="flex gap-4 mt-4">
+            <a href="https://a16z.com">
+              <img className="w-8 h-8 pointer-events-auto" src={a16zImg} alt="a16z" />
+            </a>
+            <a href="https://convex.dev">
+              <img className="w-20 h-8 pointer-events-auto" src={convexImg} alt="Convex" />
+            </a>
+          </div>
+        </footer>
+      </div>
+
+      {/* Game Body */}
+      <div className="flex-1 relative isolate overflow-hidden p-8 shadow-2xl flex flex-col justify-start">
+        
+
+        <Game />
+      </div>
+
+      {/* Modals and other components */}
       <ReactModal
         isOpen={helpModalOpen}
         onRequestClose={() => setHelpModalOpen(false)}
@@ -31,6 +77,10 @@ export default function Home() {
         ariaHideApp={false}
       >
         <div className="font-body">
+
+       
+
+
           <h1 className="text-center text-6xl font-bold font-display game-title">Help</h1>
           <p>
             Welcome to AI town. AI town supports both anonymous <i>spectators</i> and logged in{' '}
@@ -62,53 +112,7 @@ export default function Home() {
           </p>
         </div>
       </ReactModal>
-      {/*<div className="p-3 absolute top-0 right-0 z-10 text-2xl">
-        <Authenticated>
-          <UserButton afterSignOutUrl="/ai-town" />
-        </Authenticated>
-
-        <Unauthenticated>
-          <LoginButton />
-        </Unauthenticated>
-      </div> */}
-
-      <div className="w-full lg:h-screen min-h-screen relative isolate overflow-hidden lg:p-8 shadow-2xl flex flex-col justify-start">
-        <h1 className="mx-auto text-4xl p-3 sm:text-8xl lg:text-9xl font-bold font-display leading-none tracking-wide game-title w-full text-left sm:text-center sm:w-auto">
-          AI Town
-        </h1>
-
-        <div className="max-w-xs md:max-w-xl lg:max-w-none mx-auto my-4 text-center text-base sm:text-xl md:text-2xl text-white leading-tight shadow-solid">
-          A virtual town where AI characters live, chat and socialize.
-          {/* <Unauthenticated>
-            <div className="my-1.5 sm:my-0" />
-            Log in to join the town
-            <br className="block sm:hidden" /> and the conversation!
-          </Unauthenticated> */}
-        </div>
-
-        <Game />
-
-        <footer className="justify-end bottom-0 left-0 w-full flex items-center mt-4 gap-3 p-6 flex-wrap pointer-events-none">
-          <div className="flex gap-4 flex-grow pointer-events-none">
-            <FreezeButton />
-            <MusicButton />
-            <Button href="https://github.com/a16z-infra/ai-town" imgUrl={starImg}>
-              Star
-            </Button>
-            <InteractButton />
-            <Button imgUrl={helpImg} onClick={() => setHelpModalOpen(true)}>
-              Help
-            </Button>
-          </div>
-          <a href="https://a16z.com">
-            <img className="w-8 h-8 pointer-events-auto" src={a16zImg} alt="a16z" />
-          </a>
-          <a href="https://convex.dev">
-            <img className="w-20 h-8 pointer-events-auto" src={convexImg} alt="Convex" />
-          </a>
-        </footer>
-        <ToastContainer position="bottom-right" autoClose={2000} closeOnClick theme="dark" />
-      </div>
+      <ToastContainer position="bottom-right" autoClose={2000} closeOnClick theme="dark" />
     </main>
   );
 }

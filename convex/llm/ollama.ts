@@ -1,8 +1,10 @@
 // That's right! No imports and no dependencies 🤯
 
-import { LLM_API, ChatCompletionContent, CreateChatCompletionRequest, CreateChatCompletionResponse, CreateEmbeddingResponse } from "./types";
+import { LLM_API, DefaultChatCompletionContent, CreateChatCompletionRequest, CreateChatCompletionResponse, CreateEmbeddingResponse } from "./types";
 
 // import { retryWithBackoff } from "./llm";
+
+
 
 
 
@@ -100,7 +102,7 @@ export class OllamaModel implements LLM_API {
       };
     }
 
-    return new ChatCompletionContent(result.body!, stopWords);
+    return new DefaultChatCompletionContent(result.body!, stopWords);
 
 
 

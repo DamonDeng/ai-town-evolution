@@ -42,6 +42,7 @@ import type * as engine_historicalObject from "../engine/historicalObject.js";
 import type * as http from "../http.js";
 import type * as init from "../init.js";
 import type * as llm_awsBedrock from "../llm/awsBedrock.js";
+import type * as llm_dummyLLM from "../llm/dummyLLM.js";
 import type * as llm_llm from "../llm/llm.js";
 import type * as llm_ollama from "../llm/ollama.js";
 import type * as llm_types from "../llm/types.js";
@@ -98,6 +99,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   init: typeof init;
   "llm/awsBedrock": typeof llm_awsBedrock;
+  "llm/dummyLLM": typeof llm_dummyLLM;
   "llm/llm": typeof llm_llm;
   "llm/ollama": typeof llm_ollama;
   "llm/types": typeof llm_types;

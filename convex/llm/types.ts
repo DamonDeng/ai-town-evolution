@@ -282,7 +282,40 @@ const suffixOverlapsPrefix = (s1: string, s2: string) => {
 };
 
 
-export class ChatCompletionContent {
+export interface ChatCompletionContent {
+  // readInner(): AsyncGenerator<string, void, unknown>;
+  read(): AsyncGenerator<string, void, unknown>;
+  readAll(): Promise<string>;
+  // splitStream(stream: ReadableStream<Uint8Array>): AsyncGenerator<string, void, unknown>;
+}
+
+export class EmptyCompletionContent implements ChatCompletionContent {
+
+
+  constructor() {
+
+  }
+
+
+
+  // stop words in OpenAI api don't always work.
+  // So we have to truncate on our side.
+  async *read() {
+    let lastFragment = '';
+    yield lastFragment;
+  }
+
+  async readAll() {
+    let allContent = '';
+    return allContent;
+  }
+
+
+}
+
+
+
+export class DefaultChatCompletionContent implements ChatCompletionContent {
   private readonly body: ReadableStream<Uint8Array>;
   private readonly stopWords: string[];
 
@@ -370,6 +403,7 @@ export class ChatCompletionContent {
 }
 
 
+
 // export interface LLM_API {
 //   chatCompletion(
 //     body: Omit<CreateChatCompletionRequest, 'model'> & {
@@ -413,4 +447,29 @@ export interface LLM_API {
 
 
 
+}
+
+
+export interface ModelConfig {
+  model: string;
+  model_id: string;
+  temperature?: number;
+  top_p?: number;
+  max_tokens?: number;
+  presence_penalty?: number;
+  frequency_penalty?: number;
+  sendMemory?: boolean;
+  historyMessageCount?: number;
+  compressMessageLengthThreshold?: number;
+  enableInjectSystemPrompts?: boolean;
+  template?: string;
+  anthropic_version?: string;
+}
+
+export interface MultimodalContent {
+  type: "text" | "image_url";
+  text?: string;
+  image_url?: {
+    url: string;
+  };
 }

@@ -13,6 +13,12 @@
     "le": "vite src/editor/"
   },
   "dependencies": {
+    "@aws-sdk/client-bedrock": "^3.427.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.427.0",
+    "@aws-sdk/client-cognito-identity": "^3.429.0",
+    "@aws-sdk/client-dynamodb": "^3.449.0",
+    "@aws-sdk/client-sts": "^3.427.0",
+    "@aws-sdk/eventstream-codec": "^3.374.0",
     "@clerk/clerk-react": "^4.27.0",
     "@pixi/react": "^7.1.0",
     "@pixi/sound": "^5.2.0",

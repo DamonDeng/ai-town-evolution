@@ -1,6 +1,7 @@
 import { LLM_API, ChatCompletionContent, CreateChatCompletionRequest, CreateChatCompletionResponse, CreateEmbeddingResponse } from "./types";
 import { awsBedrock } from "./awsBedrock";
 import { OllamaModel } from "./ollama";
+import { DummyModel } from "./dummyLLM";
 
 //import { CreateChatCompletionRequest, ChatCompletionContent, CreateChatCompletionResponse} from "./types";
 
@@ -26,6 +27,9 @@ export class LLM_Wrapper implements LLM_API {
       var new_llm_model = new OllamaModel(llm_model);
 
       this.LLM_Body = new_llm_model;
+    }
+    else if (llm_model === 'dummy') {
+      this.LLM_Body = new DummyModel(llm_model);
     }
     else {
       this.LLM_Body = new awsBedrock(llm_model);
@@ -129,7 +133,9 @@ const AuthHeaders = (): Record<string, string> =>
     : {};
 
 
-const llm_api = new LLM_Wrapper('ollama');
+// const llm_api = new LLM_Wrapper('ollama');
+// const llm_api = new LLM_Wrapper('dummy');
+const llm_api = new LLM_Wrapper('aws');
 
 // Overload for non-streaming
 export async function chatCompletion(
