@@ -15,54 +15,13 @@ import Button from './components/buttons/Button.tsx';
 import InteractButton from './components/buttons/InteractButton.tsx';
 import FreezeButton from './components/FreezeButton.tsx';
 import { MAX_HUMAN_PLAYERS } from '../convex/constants.ts';
-import TestButton from './components/TestButton.tsx';
 import PoweredByConvex from './components/PoweredByConvex.tsx';
 
 export default function Home() {
   const [helpModalOpen, setHelpModalOpen] = useState(false);
-
   return (
-    <main className="relative min-h-screen font-body game-background flex">
-      {/* Left Column */}
-      <div className="flex flex-col ">
-        {/* Header */}
-        <header className="p-3">
-          {/* Header content */}
+    <main className="relative flex min-h-screen flex-col items-center justify-between font-body game-background">
 
-          <h1 className="mx-auto text-2xl p-3 sm:text-2xl lg:text-2xl font-bold font-display leading-none tracking-wide game-title w-full text-left sm:text-center sm:w-auto">
-            AI Town
-          </h1>
-
-
-        </header>
-
-        {/* Footer */}
-        <footer className="p-3">
-          <div className="flex flex-col gap-4">
-            <FreezeButton />
-            <MusicButton />
-
-            <Button href="https://github.com/a16z-infra/ai-town" imgUrl={starImg}>
-              __Star__
-            </Button>
-            <InteractButton />
-            <Button imgUrl={helpImg} onClick={() => setHelpModalOpen(true)}>
-              __Help__
-            </Button>
-            <TestButton />
-          </div>
-
-        </footer>
-      </div>
-
-      {/* Game Body */}
-      <div className="flex-1 relative isolate overflow-hidden p-8 shadow-2xl flex flex-col justify-start">
-
-
-        <Game />
-      </div>
-
-      {/* Modals and other components */}
       <ReactModal
         isOpen={helpModalOpen}
         onRequestClose={() => setHelpModalOpen(false)}
@@ -71,10 +30,6 @@ export default function Home() {
         ariaHideApp={false}
       >
         <div className="font-body">
-
-
-
-
           <h1 className="text-center text-6xl font-bold font-display game-title">Help</h1>
           <p>
             Welcome to AI town. AI town supports both anonymous <i>spectators</i> and logged in{' '}
@@ -106,7 +61,41 @@ export default function Home() {
           </p>
         </div>
       </ReactModal>
-      <ToastContainer position="bottom-right" autoClose={2000} closeOnClick theme="dark" />
+      {/*<div className="p-3 absolute top-0 right-0 z-10 text-2xl">
+        <Authenticated>
+          <UserButton afterSignOutUrl="/ai-town" />
+        </Authenticated>
+
+        <Unauthenticated>
+          <LoginButton />
+        </Unauthenticated>
+      </div> */}
+
+      <div className="w-full lg:h-screen min-h-screen relative isolate overflow-hidden lg:p-2 shadow-2xl flex flex-col justify-start">
+        <h1 className="mx-auto text-2xl p-3 sm:text-4xl lg:text-3xl font-bold font-display leading-none tracking-wide game-title w-full text-left sm:text-center sm:w-auto">
+          AI Town
+        </h1>
+
+
+
+        <Game />
+
+        <footer className="justify-end bottom-0 left-0 w-full flex items-center mt-1 gap-1 p-1 flex-wrap pointer-events-none">
+          <div className="flex gap-4 flex-grow pointer-events-none">
+            <FreezeButton />
+            <MusicButton />
+            <Button href="https://github.com/a16z-infra/ai-town" imgUrl={starImg}>
+              Star
+            </Button>
+            <InteractButton />
+            <Button imgUrl={helpImg} onClick={() => setHelpModalOpen(true)}>
+              Help
+            </Button>
+          </div>
+
+        </footer>
+        <ToastContainer position="bottom-right" autoClose={2000} closeOnClick theme="dark" />
+      </div>
     </main>
   );
 }
