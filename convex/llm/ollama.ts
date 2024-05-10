@@ -146,6 +146,12 @@ export class OllamaModel implements LLM_API {
     }
     const allembeddings = json.data;
     allembeddings.sort((a, b) => a.index - b.index);
+
+    console.log('-----------embeddings-----------');
+    console.log('Embeddings:', allembeddings.length);
+
+    console.log(allembeddings.map(({ embedding }) => embedding.slice(0, 5)));
+
     return {
       ollama: false as const,
       embeddings: allembeddings.map(({ embedding }) => embedding),
@@ -154,6 +160,7 @@ export class OllamaModel implements LLM_API {
   }
 
   async fetchEmbedding(text: string) {
+    console.log('fetchEmbedding=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=');
     const { embeddings, ...stats } = await this.fetchEmbeddingBatch([text]);
     return { embedding: embeddings[0], ...stats };
   }
@@ -302,7 +309,17 @@ export async function ollamaFetchEmbedding(text: string) {
     await tryPullOllama(LLM_CONFIG.embeddingModel, error);
     throw new Error(`Failed to fetch embeddings: ${resp.status}`);
   }
-  return { embedding: (await resp.json()).embedding as number[] };
+
+  console.log('Embedding response', resp.status);
+
+  const return_result = { embedding: (await resp.json()).embedding as number[] };
+
+  // convert return_result to string and print it into console.log()
+  console.log(JSON.stringify(return_result));
+
+  return return_result;
+
+  // return { embedding: (await resp.json()).embedding as number[] };
 
 
 }

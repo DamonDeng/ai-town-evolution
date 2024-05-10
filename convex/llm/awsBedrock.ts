@@ -293,6 +293,18 @@ export class awsBedrock implements LLM_API {
     return this.client.send(command);
   }
 
+  async invokeModel(payload: any, modelId: string) {
+    const input = {
+      body: JSON.stringify(payload),
+      contentType: "application/json",
+      accept: "application/json",
+      modelId,
+    };
+
+    const command = new InvokeModelCommand(input);
+    return this.client.send(command);
+  }
+
   async chatCompletion(
     body: Omit<CreateChatCompletionRequest, 'model'> & {
       model?: CreateChatCompletionRequest['model'];
@@ -347,9 +359,44 @@ export class awsBedrock implements LLM_API {
     // dummy function
     // return a sample object match the return type
 
+    const cohere_model_id = "cohere.embed-multilingual-v3";
+
+    const embeddings = [];
+
+    const payload = {
+      texts: texts,
+      input_type: "search_document",
+      truncate: "END",
+    };
+
+    const response = await this.invokeModel(payload, cohere_model_id);
+
+
+    const decodedResponseBody = new TextDecoder().decode(response.body);
+
+    const responseBody = JSON.parse(decodedResponseBody);
+
+    console.log("aws bedrock cohere response: =====================")
+
+    console.log(responseBody);
+
+
+
+    // if (response.body) {
+
+    //   // const return_result = JSON.parse(response.body as string).embedding as number[] };
+    //   // const responseBody = JSON.parse(response.body as string);
+
+    //   for (var i = 0; i < responseBody.length; i++) {
+    //     embeddings.push(responseBody[i].embedding);
+    //   }
+    // }
+
+    // const return_result = { embedding: (await resp.json()).embedding as number[] };
+
     return {
-      ollama: true as const,
-      embeddings: [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]]
+      ollama: false as const,
+      embeddings: responseBody.embeddings as number[],
     };
   }
 

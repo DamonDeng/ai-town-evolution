@@ -370,6 +370,9 @@ export class DefaultChatCompletionContent implements ChatCompletionContent {
     for await (const chunk of this.read()) {
       allContent += chunk;
     }
+    console.log('LLM Response: =======================');
+    console.log(allContent);
+
     return allContent;
   }
 

@@ -46,7 +46,7 @@ export default function MusicButton() {
         title="Play AI generated music (press m to play/mute)"
         imgUrl={volumeImg}
       >
-        {isPlaying ? 'Mute' : 'Music'}
+        {isPlaying ? '__Mute__' : '__Music_'}
       </Button>
     </>
   );

@@ -1,6 +1,7 @@
 import { Id, TableNames } from './_generated/dataModel';
 import { internal } from './_generated/api';
 import {
+  action,
   DatabaseReader,
   internalAction,
   internalMutation,
@@ -168,12 +169,49 @@ export const randomPositions = internalMutation({
   },
 });
 
+const testing_function_to_call = (s1: string) => {
+  console.log('testing_function_to_call');
+  return false;
+};
+
+// const testing_function_to_call() {
+//   console.log('testing_function_to_call');
+// }
+
+export const testingFunction = action({
+  handler: async () => {
+    // implementation goes here
+
+    // optionally return a value
+
+    console.log('testingFunction');
+
+    const embedding_result = await fetchEmbedding('testing');
+
+    console.log(embedding_result.embedding.length);
+
+    console.log(embedding_result);
+
+    return "success";
+  },
+});
+
 export const testEmbedding = internalAction({
   args: { input: v.string() },
   handler: async (_ctx, args) => {
-    return await fetchEmbedding(args.input);
+    // return await testing_function_to_call(args.input);
+
+    console.log("testing");
   },
 });
+
+
+// export const testEmbedding = internalAction({
+//   args: { input: v.string() },
+//   handler: async (_ctx, args) => {
+//     return await fetchEmbedding(args.input);
+//   },
+// });
 
 export const testCompletion = internalAction({
   args: {},

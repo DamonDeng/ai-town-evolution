@@ -69,6 +69,8 @@ export async function startConversationMessage(
   return content;
 }
 
+
+/////////
 export async function continueConversationMessage(
   ctx: ActionCtx,
   worldId: Id<'worlds'>,
@@ -201,8 +203,7 @@ function previousConversationPrompt(
     const prev = new Date(conversation.created);
     const now = new Date();
     prompt.push(
-      `Last time you chatted with ${
-        otherPlayer.name
+      `Last time you chatted with ${otherPlayer.name
       } it was ${prev.toLocaleString()}. It's now ${now.toLocaleString()}.`,
     );
   }
