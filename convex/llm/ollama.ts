@@ -32,7 +32,7 @@ export class OllamaModel implements LLM_API {
       body.model ?? process.env.LLM_MODEL ?? process.env.OLLAMA_MODEL ?? LLM_CONFIG.chatModel;
     const stopWords = body.stop ? (typeof body.stop === 'string' ? [body.stop] : body.stop) : [];
     if (LLM_CONFIG.ollama) stopWords.push('<|eot_id|>');
-    console.log(body);
+    // console.log(body);
 
     const result = await fetch(apiUrl('/v1/chat/completions'), {
       method: 'POST',

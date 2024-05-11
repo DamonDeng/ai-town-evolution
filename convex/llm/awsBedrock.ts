@@ -1,8 +1,9 @@
 
 
-import { LLM_API } from "./types";
+import { LLM_API, ModelType } from "./types";
 import { CreateChatCompletionRequest, ChatCompletionContent, EmptyCompletionContent, CreateChatCompletionResponse } from "./types";
 import { ModelConfig, MultimodalContent } from "./types";
+
 
 import {
   BedrockRuntimeClient,
@@ -88,19 +89,115 @@ export class BedrockChatCompletionContent implements ChatCompletionContent {
 
 }
 
+export class BedrockChatCompletionContentMistral implements ChatCompletionContent {
+  private readonly body: any;
+  // private readonly stopWords: string[];
+
+  constructor(body: any) {
+    this.body = body;
+    // this.stopWords = stopWords;
+  }
+
+
+
+  // stop words in OpenAI api don't always work.
+  // So we have to truncate on our side.
+  async *read() {
+
+    for await (const item of this.body) {
+      // console.log('for loop, item', item);
+      if (item.chunk?.bytes) {
+        const decodedResponseBody = new TextDecoder().decode(
+          item.chunk.bytes,
+        );
+        const responseBody = JSON.parse(decodedResponseBody);
+
+        // console.log("streaming response:", responseBody);
+
+        if (responseBody.delta?.type === "text_delta") {
+          // console.log('delta', responseBody.delta.text);
+
+          yield responseBody.delta.text;
+          return;
+        }
+
+        if (responseBody.type === "message_stop") {
+          //remainText += JSON.stringify(responseBody["amazon-bedrock-invocationMetrics"]);
+          // metrics = responseBody["amazon-bedrock-invocationMetrics"];
+        }
+      }
+    }
+
+    yield ' ';
+
+  }
+
+  async readAll() {
+
+
+    let allContent = '';
+
+    for await (const item of this.body) {
+      // console.log('for loop, item', item);
+      if (item.chunk?.bytes) {
+        const decodedResponseBody = new TextDecoder().decode(
+          item.chunk.bytes,
+        );
+        const responseBody = JSON.parse(decodedResponseBody);
+
+        // console.log("streaming response:", responseBody);
+
+        for (const output_item of responseBody.outputs) {
+          allContent += output_item.text;
+        }
+
+
+
+        // if (responseBody.delta?.type === "text_delta") {
+        //   // console.log('delta', responseBody.delta.text);
+
+        // allContent += responseBody.text;
+        // }
+
+        // if (responseBody.type === "message_stop") {
+        //   //remainText += JSON.stringify(responseBody["amazon-bedrock-invocationMetrics"]);
+        //   // metrics = responseBody["amazon-bedrock-invocationMetrics"];
+        // }
+      }
+    }
+
+    // console.log('Mistral response: all content:', allContent);
+    return allContent;
+  }
+
+
+}
+
 
 
 
 export class awsBedrock implements LLM_API {
 
   private client: BedrockRuntimeClient = new BedrockRuntimeClient({ region: "us-west-2" });
+
+
+  // private model_config: ModelConfig = {
+  //   model: "claude-3-sonnet",
+  //   model_type: ModelType.Claude3,
+  //   top_p: 0.9,
+  //   temperature: 0.9,
+  //   max_tokens: 500,
+  //   model_id: "anthropic.claude-3-sonnet-20240229-v1:0",
+  //   anthropic_version: "bedrock-2023-05-31",
+  // };
+
   private model_config: ModelConfig = {
-    model: "claude-3-sonnet",
+    model: "mistral-8x7b",
+    model_type: ModelType.Mistral,
     top_p: 0.9,
     temperature: 0.9,
-    max_tokens: 100,
-    model_id: "anthropic.claude-3-sonnet-20240229-v1:0",
-    anthropic_version: "bedrock-2023-05-31",
+    max_tokens: 500,
+    model_id: "mistral.mixtral-8x7b-instruct-v0:1",
   };
 
 
@@ -114,7 +211,109 @@ export class awsBedrock implements LLM_API {
 
   }
 
-  convertMessagePayload(
+  convertMessagePayloadMistral(messages: any, modelConfig: ModelConfig): any {
+
+    // var new_messages: any = [];
+
+    var has_system_prompt = false;
+    var system_prompt = "";
+    var prev_role = "";
+
+    var prompt_string = "<s>[INST]";
+
+    for (var i = 0; i < messages.length; i++) {
+      if (messages[i].role === "system") {
+        if (has_system_prompt) {
+          // only first system prompt is used
+          continue;
+        } else {
+          if (typeof messages[i].content === "string") {
+            has_system_prompt = true;
+
+            prompt_string += messages[i].content;
+
+          }
+        }
+      } else if (messages[i].role === "user") {
+        // check the value type of the content
+
+        var new_contents = [];
+
+
+        if (typeof messages[i].content === "string") {
+          // the message content is not an array, it is a text message
+
+          const content_string =
+            messages[i].content == "" ? "' '" : messages[i].content;
+
+          // const text_playload = { type: "text", text: content_string };
+
+          new_contents.push(content_string);
+        } else {
+          for (var j = 0; j < messages[i].content.length; j++) {
+            if ((messages[i].content[j] as MultimodalContent).type === "image_url") {
+              new_contents.push("image");
+            } else {
+              const content_string =
+                messages[i].content[j] == "" ? "' '" : messages[i].content[j];
+              new_contents.push(content_string);
+            }
+          }
+        }
+
+        prompt_string += "<u>" + new_contents.join(" ") + "</u>";
+
+        prev_role = messages[i].role;
+
+        // console.log("now , new message is:", new_messages);
+      } else if (messages[i].role === "assistant") {
+        var new_contents = [];
+
+
+
+        if (typeof messages[i].content === "string") {
+          // the message content is not an array, it is a text message
+          const message_contest_string =
+            messages[i].content == "" ? "' '" : messages[i].content;
+          const text_playload = { type: "text", text: message_contest_string };
+
+          new_contents.push(text_playload);
+        } else {
+          for (var j = 0; j < messages[i].content.length; j++) {
+            const message_content =
+              messages[i].content[j] == "" ? "' '" : messages[i].content[j];
+            new_contents.push(message_content);
+          }
+        }
+
+        prompt_string += "<a>" + new_contents.join(" ") + "</a>";
+
+        prev_role = messages[i].role;
+      } else {
+        const message_content = messages[i] == "" ? "' '" : messages[i];
+
+        prompt_string += "<u>" + message_content + "</u>";
+
+        prev_role = messages[i].role;
+      }
+    }
+
+    prompt_string += "[/INST]";
+
+    const requestPayload = {
+
+      prompt: prompt_string,
+
+      temperature: modelConfig.temperature,
+      max_tokens: modelConfig.max_tokens,
+
+    };
+
+    return requestPayload;
+
+  }
+
+  convertMessagePayloadClaude3(
     messages: any,
     modelConfig: ModelConfig,
   ): any {
@@ -305,18 +504,73 @@ export class awsBedrock implements LLM_API {
     return this.client.send(command);
   }
 
+  convertMessagePayload(
+    messages: any,
+    modelConfig: ModelConfig,
+  ): any {
+
+    if (modelConfig.model_type === ModelType.Claude3) {
+      return this.convertMessagePayloadClaude3(messages, modelConfig);
+    } else if (modelConfig.model_type === ModelType.Mistral) {
+      return this.convertMessagePayloadMistral(messages, modelConfig);
+    } else {
+      return this.convertMessagePayloadClaude3(messages, modelConfig);
+    }
+  }
+
   async chatCompletion(
     body: Omit<CreateChatCompletionRequest, 'model'> & {
       model?: CreateChatCompletionRequest['model'];
     }
   ) {
 
-    // OLLAMA_MODEL is legacy
+    const new_message_payload = this.convertMessagePayload(body.messages, this.model_config);
 
-    console.log(body);
+    const response = await this.invokeModel(new_message_payload, this.model_config.model_id);
 
-    return 'You are helpful';
+    if (response.body) {
+      // console.log('response', response.body);
+
+      if (this.model_config.model_type === ModelType.Mistral) {
+
+        const decodedResponseBody = new TextDecoder().decode(response.body);
+        const responseBody = JSON.parse(decodedResponseBody);
+
+        var message = '';
+
+        for (const output_item of responseBody.outputs) {
+          message += output_item.text;
+        }
+
+
+
+        return message;
+
+
+      } else if (this.model_config.model_type === ModelType.Claude3) {
+
+        const decodedResponseBody = new TextDecoder().decode(response.body);
+        const responseBody = JSON.parse(decodedResponseBody);
+
+        const message = responseBody.content[0]["text"];
+
+        return message;
+      } else {
+        const decodedResponseBody = new TextDecoder().decode(response.body);
+        const responseBody = JSON.parse(decodedResponseBody);
+
+        const message = responseBody.content[0]["text"];
+
+        return message;
+      }
+
+    }
+    else {
+      console.log('no response');
+    }
   }
+
+
 
 
   async chatCompletionStream(
@@ -325,21 +579,27 @@ export class awsBedrock implements LLM_API {
     }
   ) {
 
-    console.log('------------------------------------------');
-    console.log(body);
+    // console.log('------------------------------------------');
+    // console.log(body);
     // build a string with current time stamp as dummy content
 
 
     const new_message_payload = this.convertMessagePayload(body.messages, this.model_config);
 
-    console.log(new_message_payload);
+    // console.log(new_message_payload);
 
     const response = await this.invokeModelWithStream(new_message_payload, this.model_config.model_id);
 
     if (response.body) {
       // console.log('streaming response', response.body);
 
-      return new BedrockChatCompletionContent(response.body);
+      if (this.model_config.model_type === ModelType.Mistral) {
+        return new BedrockChatCompletionContentMistral(response.body);
+      } else if (this.model_config.model_type === ModelType.Claude3) {
+        return new BedrockChatCompletionContent(response.body);
+      } else {
+        return new BedrockChatCompletionContent(response.body);
+      }
 
 
     }
@@ -376,9 +636,9 @@ export class awsBedrock implements LLM_API {
 
     const responseBody = JSON.parse(decodedResponseBody);
 
-    console.log("aws bedrock cohere response: =====================")
+    // console.log("aws bedrock cohere response: =====================")
 
-    console.log(responseBody);
+    // console.log(responseBody);
 
 
 
@@ -396,7 +656,7 @@ export class awsBedrock implements LLM_API {
 
     return {
       ollama: false as const,
-      embeddings: responseBody.embeddings as number[],
+      embeddings: responseBody.embeddings as number[][],
     };
   }
 

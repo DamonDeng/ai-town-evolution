@@ -452,9 +452,16 @@ export interface LLM_API {
 
 }
 
+export enum ModelType {
+  Claude2 = 'claude-2',
+  Claude3 = 'claude-3',
+  Mistral = 'mistral',
+  Llama3 = 'llama-3',
+}
 
 export interface ModelConfig {
   model: string;
+  model_type: ModelType;
   model_id: string;
   temperature?: number;
   top_p?: number;
