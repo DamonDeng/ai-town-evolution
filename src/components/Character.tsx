@@ -2,8 +2,10 @@ import { BaseTexture, ISpritesheetData, Spritesheet } from 'pixi.js';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatedSprite, Container, Graphics, Text } from '@pixi/react';
 import * as PIXI from 'pixi.js';
+import { TextStyle } from 'pixi.js'
 
 export const Character = ({
+  name,
   textureUrl,
   spritesheetData,
   x,
@@ -17,6 +19,8 @@ export const Character = ({
   speed = 0.1,
   onClick,
 }: {
+  // The name of the character.
+  name?: string;
   // Path to the texture packed image.
   textureUrl: string;
   // The data for the spritesheet.
@@ -92,8 +96,20 @@ export const Character = ({
       {isSpeaking && (
         // TODO: We'll eventually have separate assets for thinking and speech animations.
         <Text x={18} y={-10} scale={0.8} text={'💬'} anchor={{ x: 0.5, y: 0.5 }} />
+
       )}
-      {isViewer && <ViewerIndicator />}
+      {/* {?isViewer && <ViewerIndicator />} */}
+
+      {/* <Text x={0} y={-20} scale={0.4} text={name} anchor={{ x: 0.5, y: 0.5 }} style={{ fill: 'blue' }} /> */}
+      <Text x={0} y={-20} scale={0.4} text={name} anchor={{ x: 0.5, y: 0.5 }} style={
+        new TextStyle({
+          align: 'center',
+          fontSize: 30,
+          fill: ['#ffffff', '#ffa500'], // gradient
+        })
+      } />
+
+
       <AnimatedSprite
         ref={ref}
         isPlaying={isMoving}

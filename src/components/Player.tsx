@@ -33,6 +33,14 @@ export const Player = ({
   if (!playerCharacter) {
     throw new Error(`Player ${player.id} has no character`);
   }
+
+  const temp_playerName = game.playerDescriptions.get(player.id)?.name;
+  var playerName: string = player.id;
+
+  if (temp_playerName) {
+    playerName = temp_playerName;
+  }
+
   const character = characters.find((c) => c.name === playerCharacter);
 
   const locationBuffer = game.world.historicalLocations?.get(player.id);
@@ -67,6 +75,7 @@ export const Player = ({
   return (
     <>
       <Character
+        name={playerName}
         x={historicalLocation.x * tileDim + tileDim / 2}
         y={historicalLocation.y * tileDim + tileDim / 2}
         orientation={orientationDegrees(historicalFacing)}
